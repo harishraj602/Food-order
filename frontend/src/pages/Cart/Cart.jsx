@@ -1,11 +1,58 @@
-import React, { useContext } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import "./Cart.css";
 import { StoreContext } from "../../Context/StoreContext";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import ApiService from "../../apiservices/ApiService";
 const Cart = () => {
   const { cartItems, food_list, removeFromCart,getTotalCartAmount } = useContext(StoreContext);
 
   const navigate=useNavigate();
+  
+  const[loggeduser,setLoggeduser]=useState('')
+
+  const[usercartlist,setUsercartlist]=useState(0);
+
+  const [total,setTotal]=useState(0)
+
+
+  useEffect(()=>{
+      const getLoggedInUser = async () => {
+          try {
+            const response = await ApiService.getloggeduser();
+            setLoggeduser(response.user);
+
+            const cartlist = response.user.usercartitems;
+
+            const quantityMap = cartlist.reduce((acc, itemId) => {
+              acc[itemId] = (acc[itemId] || 0) + 1;
+              return acc;
+            }, {});
+
+            const uniqueItemIds = new Set(cartlist);
+
+            const usercartitems=await ApiService.getuserfooditems([...uniqueItemIds])
+  
+            const itemsWithQuantity = usercartitems.fooditems.map(item => ({
+              ...item,
+              quantity: quantityMap[item.id]
+            }));
+
+            setUsercartlist(itemsWithQuantity)
+
+            const totalamount=itemsWithQuantity.reduce((sum,item)=>{
+              return sum+(item.price*item.quantity)
+            },0)
+            setTotal(totalamount)
+
+            console.log("userfooditemscartlie",usercartitems)
+
+          } catch (error) {
+            console.error('Error fetching logged-in user:', error);
+          }
+        };
+        getLoggedInUser();
+  },[])
+
 
   return (
     <div className="cart">
@@ -21,25 +68,22 @@ const Cart = () => {
         </div>
         <br />
         <hr />
-        {food_list.map((item, index)=>{
-            
-          if(cartItems[item._id]>0)
-          {
+        {usercartlist&&usercartlist.map((item, index)=>{
+         
             return (
-                <div>
+                <div key={index}>
                     <div className='cart-items-title cart-items-item'>
-                      <img src={item. image} alt=" " />
+                      <img src={`data:image/png;base64,${item.image}`} alt=" " />
                       <p>{item.name}</p>
                       <p>${item.price}</p>
-                      <p>{cartItems[item._id]}</p>
-                      <p>${item.price*cartItems[item._id]}</p>
+                      <p>{item.quantity}</p>
+                      <p>${item.price*item.quantity}</p>
                       <p className="cross" onClick={()=>removeFromCart(item._id)}>x</p>
                     </div>
                     <hr />
                 </div>
                
               )
-          }
 
         })}
       </div>
@@ -50,19 +94,19 @@ const Cart = () => {
             <div>
                 <div className="cart-total-details">
                   <p>SubTotal</p>
-                  <p>${getTotalCartAmount()}</p>
+                  <p>${total}</p>
                 </div>
                 <hr />
 
                 <div className="cart-total-details">
                   <p>Delivery Fee</p>
-                  <p>${getTotalCartAmount()===0?0:2}</p>
+                  <p>${total===0?0:2}</p>
                 </div>
                  <hr />
 
                 <div className="cart-total-details">
                    <b>Total</b>
-                   <b>${getTotalCartAmount()===0?0:getTotalCartAmount()+2}</b>
+                   <b>${total===0?0:getTotalCartAmount()+2}</b>
                 </div>
             </div>
             <button onClick={()=>navigate('/order')}>PROCEED TO CHECKOUT</button>

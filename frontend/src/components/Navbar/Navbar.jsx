@@ -1,14 +1,33 @@
-import React, { useContext, useState } from 'react'
+import React, { useContext, useEffect, useState } from 'react'
 import './Navbar.css'
 import { assets } from '../../assets/assets'
 import { Link } from 'react-router-dom'
 import { StoreContext } from '../../Context/StoreContext'
+import ApiService from '../../apiservices/ApiService'
+import {toast } from 'react-toastify';
 
 const Navbar = ({setShowLogin}) => {
 
   const[menu,setMenu]=useState('home')
 
-  const {getTotalCartAmount} =useContext(StoreContext)
+
+  const {getTotalCartAmount,isAuthenticated,setIsAuthenticated,checkcart,setCheckcart} =useContext(StoreContext)
+  console.log("navaar auth",isAuthenticated)
+
+  useEffect(()=>{
+   const loggeduser=async()=>{
+      const response=await ApiService.getloggeduser();
+      setCheckcart(response.user.usercartitems.length)
+   }
+   loggeduser();
+  },[])
+
+  
+  const handlelogout=()=>{
+    setIsAuthenticated(false)
+    ApiService.logout();
+    toast.success("Logged out successfull") 
+  }
 
 
 
@@ -25,9 +44,12 @@ const Navbar = ({setShowLogin}) => {
             <img src={assets.search_icon} alt=" " />
             <div className= "navbar-search-icon">
                <Link to={'/cart'}><img src={assets.basket_icon} alt="" /></Link> 
-                <div className={getTotalCartAmount()===0?"":"dot"}></div>
+                <div className={checkcart===0?"":"dot"}></div>
             </div> 
-            <button onClick={()=>setShowLogin(true)}>sign in</button>
+            {
+             isAuthenticated?<button onClick={handlelogout}>logout</button>
+                  :<button onClick={()=>setShowLogin(true)}>sign in</button>
+            } 
         </div>
     </div>
   )

@@ -1,11 +1,28 @@
 import { createContext, useEffect, useState } from "react";
 import { food_list } from "../assets/assets";
+import ApiService from "../apiservices/ApiService";
 
 export const StoreContext = createContext(null);
 
 const StoreContextProvider = (props) => {
 
   const [cartItems, setCartItems] = useState({});
+
+
+  const [isAuthenticated,setIsAuthenticated]=useState(!!localStorage.getItem('token'))
+
+
+  const [checkcart, setCheckcart] = useState(0);
+  const fetchCartItems = async () => {
+    try {
+        const response = await ApiService.getloggeduser();
+        setCheckcart(response.user.usercartitems.length);
+        console.log("context",checkcart)
+        console.log("checkcart", response.user.usercartitems.length);
+    } catch (error) {
+        console.error("Error fetching cart items:", error);
+    }
+};
 
 
 
@@ -42,7 +59,7 @@ const StoreContextProvider = (props) => {
 
 
   const contextValue = {
-    food_list,cartItems,setCartItems,addToCart,removeFromCart,getTotalCartAmount
+    food_list,cartItems,setCartItems,addToCart,removeFromCart,getTotalCartAmount,isAuthenticated,setIsAuthenticated,checkcart,fetchCartItems,setCheckcart
   };
 
   return (
